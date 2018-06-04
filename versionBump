@@ -1,0 +1,42 @@
+#!/bin/bash
+
+branchName=`git branch | grep "*"`
+echo "/============================================================================/"
+echo "/==                          🐱  Version bumper 🐱                             /"
+echo "/============================================================================/"
+if [[ -z `git status -s` ]]
+then
+	git branch
+	git checkout master
+	git pull origin master
+	git checkout ${branchName:2}
+	echo "ℹ️  INFO: Renaming current branch..."
+	git branch -m ${branchName:2}_temp
+	git branch
+	git merge master
+	if [ "$1" = "major" ] || [ "$1" = "minor" ] || [ "$1" = "patch" ]
+	then
+	  versionBumpType=$1
+	else
+	  versionBumpType="patch"
+	fi
+	echo "ℹ️  INFO: Bumping npm version (${versionBumpType})..."
+	npm version $versionBumpType
+	git add .
+	git commit -m "Version bump... temp commit message" --no-verify
+	echo "ℹ️  INFO: Checkout branch based on master that will get pushed..."
+	git checkout master
+	git checkout -b ${branchName:2}
+	git branch
+	branchName=`git branch | grep "*"`
+	echo "ℹ️  INFO: Squash new commits in ${branchName:2}_temp into ${branchName:2}..."
+	git merge --squash ${branchName:2}_temp
+	echo "ℹ️  INFO: Cleanup..."
+	git branch -D ${branchName:2}_temp
+	echo "/============================================================================/"
+	echo "/==    🐱  Ready for manual commit and push to origin, Version bumped 🐱     ==/"
+	echo "/============================================================================/"
+else
+	echo "⚠️  WARNING: Unable to continue, please commit your work"
+fi
+git status
